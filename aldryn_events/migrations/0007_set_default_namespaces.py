@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models, migrations, transaction
-from django.apps import apps as django_apps
+from django.db import migrations, transaction
 from django.conf import settings
 from django.db.utils import ProgrammingError, OperationalError
 
@@ -30,6 +29,9 @@ def create_default_namespaces(apps, schema_editor):
         # migrate this - we would get an exception because apps.get_model
         # contains cms models at point of dependency migration
         # so if that is the case - import real model.
+        if not model.objects.exists():
+            # If there are no object yet, of this type, do nothing.
+            continue
         try:
             # to avoid the following error:
             #   django.db.utils.InternalError: current transaction is aborted,
@@ -39,11 +41,9 @@ def create_default_namespaces(apps, schema_editor):
                 model_objects = list(model.objects.filter(
                     app_config__isnull=True))
         except (ProgrammingError, OperationalError):
-            new_model = django_apps.get_model(
-                'aldryn_events.{0}'.format(model.__name__))
-            with transaction.atomic():
-                model_objects = new_model.objects.filter(
-                    app_config__isnull=True)
+            # If the above didn't work, do NOT attempt to access django.apps
+            # directly as this will cause issues in future releases. Just pass.
+            pass
         for entry in model_objects:
             entry.app_config = app_config
             entry.save()
