@@ -32,18 +32,11 @@ def create_default_namespaces(apps, schema_editor):
         if not model.objects.exists():
             # If there are no object yet, of this type, do nothing.
             continue
-        try:
-            # to avoid the following error:
-            #   django.db.utils.InternalError: current transaction is aborted,
-            #   commands ignored until end of transaction block
-            # we need to cleanup or avoid that by making them atomic.
-            with transaction.atomic():
-                model_objects = list(model.objects.filter(
-                    app_config__isnull=True))
-        except (ProgrammingError, OperationalError):
-            # If the above didn't work, do NOT attempt to access django.apps
-            # directly as this will cause issues in future releases. Just pass.
-            pass
+
+        with transaction.atomic():
+            model_objects = list(model.objects.filter(
+                app_config__isnull=True))
+
         for entry in model_objects:
             entry.app_config = app_config
             entry.save()
