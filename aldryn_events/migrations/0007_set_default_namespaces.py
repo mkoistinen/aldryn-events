@@ -29,7 +29,7 @@ def create_default_namespaces(apps, schema_editor):
         # migrate this - we would get an exception because apps.get_model
         # contains cms models at point of dependency migration
         # so if that is the case - import real model.
-        if not model.objects.exists():
+        if not model.objects.filter(app_config__isnull=True).exists():
             # If there are no object yet, of this type, do nothing.
             continue
 
